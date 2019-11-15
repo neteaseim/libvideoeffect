@@ -12,6 +12,7 @@ import com.netease.nrtc.sdk.NRtcCallback;
 import com.netease.nrtc.sdk.NRtcParameters;
 import com.netease.nrtc.sdk.audio.AudioFrame;
 import com.netease.nrtc.sdk.common.ImageFormat;
+import com.netease.nrtc.sdk.common.VideoFilterParameter;
 import com.netease.nrtc.sdk.common.VideoFrame;
 import com.netease.nrtc.sdk.common.statistics.NetStats;
 import com.netease.nrtc.sdk.common.statistics.RtcStats;
@@ -135,6 +136,11 @@ public class PreviewActivity extends AppCompatActivity {
                 }
 
                 @Override
+                public boolean onVideoFrameFilter(com.netease.nrtc.sdk.video.VideoFrame videoFrame, com.netease.nrtc.sdk.video.VideoFrame[] videoFrames, VideoFilterParameter videoFilterParameter) {
+                    return false;
+                }
+
+                @Override
                 public boolean onVideoFrameFilter(VideoFrame videoFrame, boolean b) {
                     applyFilter(videoFrame, b);
                     return true;
@@ -191,12 +197,12 @@ public class PreviewActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onSubscribeVideoResult(long l, int i) {
+                public void onSubscribeVideoResult(long l, int i, int i1) {
 
                 }
 
                 @Override
-                public void onUnsubscribeVideoResult(long l, int i) {
+                public void onUnsubscribeVideoResult(long l, int i, int i1) {
 
                 }
 
@@ -206,7 +212,7 @@ public class PreviewActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onRemotePublishVideo(long l) {
+                public void onRemotePublishVideo(long l, int[] ints) {
 
                 }
 
