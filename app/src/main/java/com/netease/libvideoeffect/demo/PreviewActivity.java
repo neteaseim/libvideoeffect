@@ -2,15 +2,19 @@ package com.netease.libvideoeffect.demo;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.netease.nrtc.sdk.NRtc;
 import com.netease.nrtc.sdk.NRtcCallback;
+import com.netease.nrtc.sdk.NRtcEx;
 import com.netease.nrtc.sdk.NRtcParameters;
 import com.netease.nrtc.sdk.audio.AudioFrame;
+import com.netease.nrtc.sdk.common.EglContextWrapper;
 import com.netease.nrtc.sdk.common.ImageFormat;
 import com.netease.nrtc.sdk.common.VideoFilterParameter;
 import com.netease.nrtc.sdk.common.VideoFrame;
@@ -31,7 +35,8 @@ import java.util.Set;
  */
 public class PreviewActivity extends AppCompatActivity {
 
-    private NRtc nrtc;
+    private NRtcEx nrtc;
+    private EglContextWrapper mEglContext;
 
     public static void launch(Context context) {
         Intent i = new Intent(context, PreviewActivity.class);
@@ -44,7 +49,7 @@ public class PreviewActivity extends AppCompatActivity {
         setContentView(R.layout.activity_preview);
 
         try {
-            nrtc = NRtc.create(this, "fake", new NRtcCallback() {
+            nrtc = (NRtcEx) NRtc.create(this, "fake", new NRtcCallback() {
                 @Override
                 public void onJoinedChannel(long l, String s, String s1, int i) {
 
@@ -226,11 +231,19 @@ public class PreviewActivity extends AppCompatActivity {
 
                 }
             });
-            nrtc.setParameter(NRtcParameters.KEY_VIDEO_FRAME_FILTER, true);
+            mEglContext = EglContextWrapper.createEglContext();
+            boolean egl14 = mEglContext.isEGL14Supported();
+            if (egl14) {
+                nrtc.updateSharedEGLContext((android.opengl.EGLContext) mEglContext.getEglContext());
+            } else {
+                nrtc.updateSharedEGLContext((javax.microedition.khronos.egl.EGLContext) mEglContext.getEglContext());
+            }
+
+            nrtc.setParameter(NRtcParameters.KEY_VIDEO_FRAME_FILTER, false);
             IVideoRender render = findViewById(R.id.renderer);
             nrtc.enableVideo();
             nrtc.setupLocalVideoRenderer(render, 0, false);
-            nrtc.setupVideoCapturer(VideoCapturerFactory.createCameraCapturer(true));
+            nrtc.setupVideoCapturer(new OpenGLESCapturer(mEglContext));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -249,6 +262,18 @@ public class PreviewActivity extends AppCompatActivity {
         super.onPause();
         if (nrtc != null) {
             nrtc.stopVideoPreview();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (nrtc != null) {
+            nrtc.dispose();
+        }
+
+        if (mEglContext != null) {
+            mEglContext.release();
         }
     }
 
